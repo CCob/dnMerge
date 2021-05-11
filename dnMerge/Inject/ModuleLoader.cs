@@ -12,7 +12,7 @@ internal class ModuleLoader {
     static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args) {
 
         var assemblyName = new AssemblyName(args.Name);
-        var resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(assemblyName.Name);
+        var resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(assemblyName.Name.ToLower());
         if (resStream == null) {
             return null;
         }
