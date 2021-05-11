@@ -1,0 +1,22 @@
+﻿<!-- 
+  This file is automatically imported by NuGet into a user's project
+  when it targets a single framework, or in classic (pre 2017) csproj projects.
+-->
+<Project TreatAsLocalProperty="TaskFolder;TaskAssembly">
+  <PropertyGroup>
+    <TaskFolder Condition=" '$(MSBuildRuntimeType)' == 'Core' ">netstandard2.0</TaskFolder>
+    <TaskFolder Condition=" '$(MSBuildRuntimeType)' != 'Core' ">net472</TaskFolder>
+    <TaskAssembly>$(MSBuildThisFileDirectory)..\tasks\$(TaskFolder)\dnMerge.dll</TaskAssembly>
+  </PropertyGroup>
+
+  <UsingTask TaskName="dnMerge.dnMergeTask" AssemblyFile="$(TaskAssembly)" />
+
+  <Target Name="dnMerge" AfterTargets="CopyFilesToOutputDirectory">
+    <dnMergeTask
+        AssemblyFile="@(IntermediateAssembly)"
+        ProjectDirectory="$(MSBuildProjectDirectory)"
+        OutputPath="$(OutputPath)">
+    </dnMergeTask>
+  </Target>
+
+</Project>
