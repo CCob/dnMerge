@@ -14,11 +14,16 @@ namespace dnMerge
 {
     public class dnMergeTask : Task {
 
+        [Required]
         public string AssemblyFile { get; set; }
-        public string ProjectDirectory { get; set; }  
+        [Required]
+        public string ProjectDirectory { get; set; }
+        [Required]
         public string OutputPath { get; set; }
+        [Required]
         public string DependenciesAssembly { get; set; }
-        public ITaskItem[] ReferenceCopyLocalFiles { get; set; }
+        [Required]
+        public ITaskItem[] ReferenceCopyLocalPaths { get; set; }
 
         public string[] MergeClassNamespace = {
             "SevenZip"
@@ -66,7 +71,7 @@ namespace dnMerge
 
         private void ProcessAssembly(ModuleDefMD module) {
 
-            ReferenceCopyLocalFiles
+            ReferenceCopyLocalPaths
                .Select(x => x.ItemSpec)
                .ToList()
                .ForEach(referenceCopyLocalFile => {
