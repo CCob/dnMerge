@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net472</TargetFrameworks>
     <!-- Suppresses the warnings about the package not having assemblies in lib/*/.dll.-->
     <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\</PackageOutputPath>
     <!-- Suppresses the warnings about the package not having assemblies in lib/*/.dll.-->
@@ -10,21 +10,23 @@
     <!-- Change the default location where NuGet will put the build output -->
     <BuildOutputTargetFolder>tasks</BuildOutputTargetFolder>
     <!-- set the version automatically -->
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>0.5.8</VersionPrefix>
     <VersionSuffix></VersionSuffix>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <DevelopmentDependency>true</DevelopmentDependency>
-    <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <Authors>CCob</Authors>
     <Company />
     <Description>A lightweight .NET assembly dependency merger that uses dnLib and 7zip's LZMA SDK for compressing dependant assemblies.</Description>
     <PackageProjectUrl>https://github.com/CCob/dnMerge</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CCob/dnMerge</RepositoryUrl>
-    <AssemblyVersion>0.2.0.0</AssemblyVersion>
-    <FileVersion>0.2.0.0</FileVersion>
-    <Version>0.2.0</Version>     
+    <AssemblyVersion>0.5.9.0</AssemblyVersion>
+    <FileVersion>0.5.9.0</FileVersion>
+    <Version>0.5.9</Version>
+    <LangVersion>9.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
 
   <ItemGroup>
     <Content Include="build\*" PackagePath="build\" />
@@ -32,13 +34,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Costura.Fody" />
     <PackageReference Include="Microsoft.Build.Framework" Version="16.9.0" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.9.0" />
-    <PackageReference Include="dnlib" Version="3.3.2" />
     <!-- marks all packages as 'local only' so they don't end up in the nuspec -->
     <PackageReference Update="@(PackageReference)" PrivateAssets="All" />
-    <PackageReference Update="Costura.Fody" Version="4.1.0" />
   </ItemGroup>
 
 </Project>

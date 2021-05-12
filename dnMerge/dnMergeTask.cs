@@ -4,11 +4,10 @@ using dnlib.DotNet.Writer;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using SevenZip.Compression.LZMA;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
+
 
 namespace dnMerge
 {
@@ -17,6 +16,7 @@ namespace dnMerge
         public string AssemblyFile { get; set; }
         public string ProjectDirectory { get; set; }  
         public string OutputPath { get; set; }
+        public string DependenciesAssembly { get; set; }
 
         public string[] MergeClassNamespace = {
             "SevenZip"
@@ -61,39 +61,34 @@ namespace dnMerge
             MergeClasses(fromModule, toModule);
         }
 
-        private void BuildAssemblyList(HashSet<string> assemblies, string assemblyPath) {
-
-            if (!File.Exists(assemblyPath))
-                return;
-
+        private void BuildAssemblyList(ref Dictionary<string,string> assemblies, string assemblyPath) {
+ 
             ModuleDefMD module = ModuleDefMD.Load(File.ReadAllBytes(assemblyPath));
             var assemblyRefs = module.GetAssemblyRefs();
 
             foreach (var assemblyRef in assemblyRefs) {
-                if (!assemblies.Contains(assemblyRef.Name.ToLower())) {
-                    assemblies.Add(assemblyRef.Name.ToLower());
+                if (!assemblies.ContainsKey(assemblyRef.Name.ToLower())) {                    
                     var referenceAssemblyPath = Path.Combine(Path.GetDirectoryName(assemblyPath), assemblyRef.Name + ".dll");
-                    BuildAssemblyList(assemblies, referenceAssemblyPath);
+                    if (File.Exists(referenceAssemblyPath)){
+                        assemblies.Add(assemblyRef.Name.ToLower(), assemblyRef.Name);
+                        BuildAssemblyList(ref assemblies, referenceAssemblyPath);
+                    } else {
+                        Log.LogMessage($"Could not find reference assembly {referenceAssemblyPath}, skipping.");
+                    }
                 }
             }
         }
 
         private void ProcessAssembly(string assemblyPath, ModuleDefMD module) {
             
-            var assemblyReferences = new HashSet<string>();
-            BuildAssemblyList(assemblyReferences, assemblyPath);
+            var assemblyReferences = new Dictionary<string,string>();
+            BuildAssemblyList(ref assemblyReferences, assemblyPath);
 
             foreach (var referenceAssembly in assemblyReferences) {
-                var referenceAssemblyPath = Path.Combine(Path.GetDirectoryName(assemblyPath), referenceAssembly + ".dll");
-                Log.LogMessage($"Attempting to merge assembly {assemblyPath}");
-
-                if (File.Exists(referenceAssemblyPath)) {
-                    module.Resources.Add(new EmbeddedResource(referenceAssembly, SevenZipHelper.Compress(File.ReadAllBytes(referenceAssemblyPath))));
-                    Log.LogMessage($"Merged assembly {referenceAssembly}");
-
-                } else {
-                    Log.LogMessage($"Could not find assembly {referenceAssembly}, skipping.");
-                }
+                Log.LogMessage(MessageImportance.Low, $"Attempting to merge assembly {referenceAssembly.Key} with filename {referenceAssembly.Value}");
+                var referenceAssemblyPath = Path.Combine(Path.GetDirectoryName(assemblyPath), referenceAssembly.Value + ".dll");                      
+                module.Resources.Add(new EmbeddedResource(referenceAssembly.Key, SevenZipHelper.Compress(File.ReadAllBytes(referenceAssemblyPath))));
+                Log.LogMessage($"Merged assembly {referenceAssembly}");
             }                                                     
         }
 
@@ -103,18 +98,24 @@ namespace dnMerge
             var assemblyFileName = Path.GetFileName(AssemblyFile);
             var fullAssemblyPath = Path.Combine(ProjectDirectory, OutputPath, assemblyFileName);
 
+            if (!File.Exists(fullAssemblyPath)) {
+                Log.LogError($"Cannot find assembly at expected location {fullAssemblyPath}");
+                return false;
+            }
+
             //Load modules needed for merging
             ModuleDefMD module = ModuleDefMD.Load(File.ReadAllBytes(fullAssemblyPath));
-            ModuleDefMD thisMod = ModuleDefMD.Load(typeof(dnMergeTask).Module);
+            ModuleDefMD thisMod = ModuleDefMD.Load(File.ReadAllBytes(DependenciesAssembly));
 
             //Inject dependant classes
             InjectDependencyClasses(thisMod, module);
+            Log.LogMessage($"Injected dependant classes into {fullAssemblyPath}");
 
             //Recursively merge all assembly references
             ProcessAssembly(fullAssemblyPath, module);
 
             //Save our updated module
-            var moduleOptions = new ModuleWriterOptions(module);
+            var moduleOptions = new ModuleWriterOptions(module);  
             module.Write(fullAssemblyPath, moduleOptions);
 
             return true;
