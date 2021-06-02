@@ -24,12 +24,16 @@ namespace dnMerge
         public string DependenciesAssembly { get; set; }
         [Required]
         public ITaskItem[] ReferenceCopyLocalPaths { get; set; }
+        public TaskLoggingHelper Logger { get; set; }
+        public bool OverwriteAssembly { get; set; } = true;
+        
 
         public string[] MergeClassNamespace = {
             "SevenZip"
         };
 
         public override bool Execute() {
+            Logger = Log;
             return ExecuteTask();
         }
 
@@ -43,10 +47,38 @@ namespace dnMerge
                 }
             }
 
-            //Bit of an ugly hack to pull in static initializers
+            //Pull in static initializers that SevenZip relies on
             var privateInit = fromModule.GetTypes().Where(t => t.Name == "<PrivateImplementationDetails>").FirstOrDefault();
             fromModule.Types.Remove(privateInit);
-            toModule.Types.Add(privateInit);
+
+            var targetPrivateInit = toModule.GetTypes().Where(t => t.Name == "<PrivateImplementationDetails>").FirstOrDefault();            
+            if (targetPrivateInit == null) {
+                //If our target module doesn't have the <PriviateImplementationDetails> then
+                //simply copy the entire type accross
+                toModule.Types.Add(privateInit);
+            } else {
+
+                //<PrivateImplementationDetails> already exists so just copy the fields
+                //across into the existing type instead.
+                var fieldsToCopy = new List<FieldDef>();
+                foreach(var field in privateInit.Fields) {
+                    fieldsToCopy.Add(field);
+                }
+                fieldsToCopy.ForEach(field => {
+                    field.DeclaringType = null;
+                    targetPrivateInit.Fields.Add(field);
+                });
+
+                //Also copy nested types across
+                var typesToCopy = new List<TypeDef>();
+                foreach (var type in privateInit.NestedTypes) {
+                    typesToCopy.Add(type);
+                }
+                typesToCopy.ForEach(type => {
+                    type.DeclaringType = null;
+                    targetPrivateInit.NestedTypes.Add(type);
+                });
+            }
         }
 
         private void InjectDependencyClasses(ModuleDefMD fromModule, ModuleDefMD toModule) {
@@ -80,7 +112,7 @@ namespace dnMerge
                            var referenceAssemblyData = File.ReadAllBytes(referenceCopyLocalFile);
                            var refModule = ModuleDefMD.Load(referenceAssemblyData);
                            module.Resources.Add(new EmbeddedResource(refModule.Assembly.Name.ToLower(), SevenZipHelper.Compress(referenceAssemblyData)));
-                           Log.LogMessage($"Merged assembly {referenceCopyLocalFile}");
+                           Logger.LogMessage($"Merged assembly {referenceCopyLocalFile}");
                        } catch (Exception e) {
                            Log.LogMessage(MessageImportance.High, $"Failed to merge assembly {referenceCopyLocalFile} with error {e.Message}");
                        }
@@ -95,7 +127,7 @@ namespace dnMerge
             var fullAssemblyPath = Path.Combine(ProjectDirectory, OutputPath, assemblyFileName);
 
             if (!File.Exists(fullAssemblyPath)) {
-                Log.LogError($"Cannot find assembly at expected location {fullAssemblyPath}");
+                Logger.LogError($"Cannot find assembly at expected location {fullAssemblyPath}");
                 return false;
             }
 
@@ -105,14 +137,18 @@ namespace dnMerge
 
             //Inject dependant classes
             InjectDependencyClasses(thisMod, module);
-            Log.LogMessage($"Injected dependant classes into {fullAssemblyPath}");
+            Logger.LogMessage($"Injected dependant classes into {fullAssemblyPath}");
 
             //Merge copy local assemblies
             ProcessAssembly(module);
 
             //Save our updated module
             var moduleOptions = new ModuleWriterOptions(module);  
-            module.Write(fullAssemblyPath, moduleOptions);
+
+            if(OverwriteAssembly)
+                module.Write(fullAssemblyPath, moduleOptions);
+            else
+                module.Write(fullAssemblyPath + ".merged", moduleOptions);
 
             return true;
         }

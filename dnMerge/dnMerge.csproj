@@ -20,9 +20,9 @@
     <Description>A lightweight .NET assembly dependency merger that uses dnLib and 7zip's LZMA SDK for compressing dependant assemblies.</Description>
     <PackageProjectUrl>https://github.com/CCob/dnMerge</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CCob/dnMerge</RepositoryUrl>
-    <AssemblyVersion>0.5.11.0</AssemblyVersion>
-    <FileVersion>0.5.11.0</FileVersion>
-    <Version>0.5.11</Version>
+    <AssemblyVersion>0.5.12.0</AssemblyVersion>
+    <FileVersion>0.5.12.0</FileVersion>
+    <Version>0.5.12</Version>
     <LangVersion>9.0</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
