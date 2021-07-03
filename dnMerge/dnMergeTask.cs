@@ -15,6 +15,8 @@ namespace dnMerge
     public class dnMergeTask : Task {
 
         [Required]
+        public string Configuration { get; set; }
+        [Required]
         public string AssemblyFile { get; set; }
         [Required]
         public string ProjectDirectory { get; set; }
@@ -121,6 +123,11 @@ namespace dnMerge
         }
 
         public bool ExecuteTask() {
+
+            if(Configuration == "Debug") {
+                Logger.LogMessage($"Skipping merging for debug build");
+                return true;
+            }
 
             //Calculate where our assembly exists
             var assemblyFileName = Path.GetFileName(AssemblyFile);

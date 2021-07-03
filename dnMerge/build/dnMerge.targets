@@ -18,7 +18,8 @@
         ProjectDirectory="$(MSBuildProjectDirectory)"
         OutputPath="$(OutputPath)"
         DependenciesAssembly="$(DependenciesAssembly)"
-        ReferenceCopyLocalPaths="@(ReferenceCopyLocalPaths)">
+        ReferenceCopyLocalPaths="@(ReferenceCopyLocalPaths)"
+        Configuration="$(Configuration)">      
     </dnMergeTask>
   </Target>
 
