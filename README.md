@@ -10,6 +10,20 @@ Merged assembiles are compressed with 7-Zip's [LZMA SDK](https://www.7-zip.org/s
 
 Simply add the dnMerge NuGet dependency into your .NET project and compile a release build.  Currently only release builds are merged since debug symbols are lost during merging.
 
+## Customisation
+
+dnMerge supports customising how the merged assembly merged.  Currently you can exclude assemblies from being merged, turn PDB generation on and off and control if the the merged assemlby is overwritten or if it's saved to a new file.  Just create a file called `dnMerge.config` inside the project folder that is using dnMerge.  Example configuration below.
+
+```xml
+<dnMergeConfig>
+    <GeneratePDB>false</GeneratePDB>
+    <OverwriteAssembly>true</OverwriteAssembly>
+    <ExcludeReferences>
+        <ReferenceName>bofnet.dll</ReferenceName>
+    </ExcludeReferences>
+</dnMergeConfig>
+```
+
 ## Credits
 
 * dnMerge uses the brilliant [dnLib](https://github.com/0xd4d/dnlib) library for .NET assembly modifications.  Without this library dnMerge would not be possible.

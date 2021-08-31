@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
+using System.Xml.Serialization;
 
 namespace dnMerge
 {
@@ -28,7 +28,8 @@ namespace dnMerge
         public ITaskItem[] ReferenceCopyLocalPaths { get; set; }
         public TaskLoggingHelper Logger { get; set; }
         public bool OverwriteAssembly { get; set; } = true;
-        
+
+        public dnMergeConfig MergeConfig { get; private set; } = new dnMergeConfig();        
 
         public string[] MergeClassNamespace = {
             "SevenZip"
@@ -107,7 +108,7 @@ namespace dnMerge
 
             ReferenceCopyLocalPaths
                .Select(x => x.ItemSpec)
-               .ToList()
+               .Where(referenceCopyLocalFile => MergeConfig.ExcludeReferences.Select(v => v.ToLower()).Any(excludedRef => !referenceCopyLocalFile.ToLower().EndsWith(excludedRef))).ToList()
                .ForEach(referenceCopyLocalFile => {
                    if (referenceCopyLocalFile.ToLower().EndsWith(".dll")) {
                        try {
@@ -132,11 +133,17 @@ namespace dnMerge
             //Calculate where our assembly exists
             var assemblyFileName = Path.GetFileName(AssemblyFile);
             var fullAssemblyPath = Path.Combine(ProjectDirectory, OutputPath, assemblyFileName);
+            var configFile = Path.Combine(ProjectDirectory, "dnMerge.config");
 
             if (!File.Exists(fullAssemblyPath)) {
                 Logger.LogError($"Cannot find assembly at expected location {fullAssemblyPath}");
                 return false;
             }
+
+            if (File.Exists(configFile)) {
+                XmlSerializer serializer = new XmlSerializer(typeof(dnMergeConfig));
+                MergeConfig = (dnMergeConfig)serializer.Deserialize(new FileStream(configFile, FileMode.Open, FileAccess.Read));
+            }            
 
             //Load modules needed for merging
             ModuleDefMD module = ModuleDefMD.Load(File.ReadAllBytes(fullAssemblyPath));
@@ -150,9 +157,10 @@ namespace dnMerge
             ProcessAssembly(module);
 
             //Save our updated module
-            var moduleOptions = new ModuleWriterOptions(module);  
+            var moduleOptions = new ModuleWriterOptions(module);
+            moduleOptions.WritePdb = MergeConfig.GeneratePDB;
 
-            if(OverwriteAssembly)
+            if(MergeConfig.OverwriteAssembly)
                 module.Write(fullAssemblyPath, moduleOptions);
             else
                 module.Write(fullAssemblyPath + ".merged", moduleOptions);
