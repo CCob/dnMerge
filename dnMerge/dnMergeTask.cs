@@ -108,7 +108,7 @@ namespace dnMerge
 
             ReferenceCopyLocalPaths
                .Select(x => x.ItemSpec)
-               .Where(referenceCopyLocalFile => MergeConfig.ExcludeReferences.Select(v => v.ToLower()).Any(excludedRef => !referenceCopyLocalFile.ToLower().EndsWith(excludedRef))).ToList()
+               .Where(referenceCopyLocalFile => !MergeConfig.ExcludeReferences.Select(v => v.ToLower()).Any(excludedRef => referenceCopyLocalFile.ToLower().EndsWith(excludedRef))).ToList()
                .ForEach(referenceCopyLocalFile => {
                    if (referenceCopyLocalFile.ToLower().EndsWith(".dll")) {
                        try {
